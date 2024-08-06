@@ -69,6 +69,7 @@ public class Injector
                 }
 
                 applyMixin(target, mixin, iface);
+//                target.writeFile(System.getProperty("user.dir") + "/injected_classes");
             }
             catch (Exception ex) {
                 System.out.println("[Error] <" + mixin.getName() + "> " + ex.getMessage());
@@ -130,8 +131,6 @@ public class Injector
             CtField newField = CtField.make(fieldModifiers + " " + fieldType + " " + fieldName + ";", target);
             target.addField(newField);
         }
-
-
     }
 
     private static void processMethod(CtClass target, CtMethod method) throws Exception {
@@ -152,31 +151,66 @@ public class Injector
         }
     }
 
-    private static void shadow(CtClass target, CtMethod method) throws Exception
-    {
+    private static void shadow(CtClass target, CtMethod method) throws Exception {
         target.defrost();
         String targName = ((Shadow) method.getAnnotation(Shadow.class)).value();
         boolean isMethod = ((Shadow) method.getAnnotation(Shadow.class)).method();
 
-        if(isMethod)
-        {
-            //NYI
-        }
-        else
-        {
-            Mapping mapping = Mappings.findByTag(targName);
-            if(!mapping.getType().equals(MappedType.FIELD))
-                return;
+        Mapping mapping = Mappings.findByTag(targName);
+        if (isMethod) {
+            if (!mapping.getType().equals(MappedType.METHOD)) return;
+
+//            CtClass obfuscatedMethodClass = ClassPool.getDefault().get(mapping.getObfuscatedClass());
+//            CtMethod obfuscatedMethod = obfuscatedMethodClass.getDeclaredMethod(mapping.getObfuscatedName());
+//            CtMethod insert = CtNewMethod.copy(obfuscatedMethod, method.getName(), target, null);
+//
+////            int modifiers = obfuscatedMethod.getModifiers();
+////            modifiers = modifiers & ~Modifier.PRIVATE & ~Modifier.PROTECTED & ~Modifier.PUBLIC | Modifier.PUBLIC;
+////
+////            insert.setModifiers(modifiers);
+//            insert.setModifiers(method.getModifiers());
+//            target.addMethod(insert);
+            CtMethod insert;
+            String clazz = mapping.getObfuscatedClass().equals(target.getName()) ? "" : (mapping.getObfuscatedClass() + ".");
+
+            StringBuilder parameters = new StringBuilder("(");
+            StringBuilder args = new StringBuilder("(");
+
+            CtClass[] parameterTypes = method.getParameterTypes();
+            for (int i = 0; i < parameterTypes.length; i++) {
+                parameters.append(parameterTypes[i].getName()).append(" a").append(i).append(",");
+                args.append("a").append(i).append(",");
+            }
+
+            if (args.toString().endsWith(",")) {
+                parameters.deleteCharAt(parameters.length() - 1);
+//                args.deleteCharAt(args.length() - 1);
+            }
+
+//            parameters.append(Byte.class.getName() + " a10");
+            args.append("(byte) -37");
+            parameters.append(")");
+            args.append(")");
+
+            String body = "{ return " + clazz + mapping.getObfuscatedName() + args + "; }";
+
+            if (Modifier.isStatic(method.getModifiers())) {
+                insert = CtNewMethod.make("public static " + method.getReturnType().getName() + " " + method.getName() + parameters + body, target);
+            } else {
+                System.out.println("public " + method.getReturnType().getName() + " " + method.getName() + parameters + body);
+                insert = CtNewMethod.make("public " + method.getReturnType().getName() + " " + method.getName() + parameters + body, target);
+            }
+
+            target.addMethod(insert);
+        } else {
+            if (!mapping.getType().equals(MappedType.FIELD)) return;
 
             CtMethod insert;
-            String clazz = mapping.getObfuscatedClass().equals(target.getName()) ? "" : mapping.getObfuscatedClass();
-            String body = "{ return " + clazz + "." + mapping.getObfuscatedName() + "; }";
-            if(Modifier.isStatic(method.getModifiers()))
-            {
+            String clazz = mapping.getObfuscatedClass().equals(target.getName()) ? "" : (mapping.getObfuscatedClass() + ".");
+            String body = "{ return " + clazz + mapping.getObfuscatedName() + "; }";
+            if (Modifier.isStatic(method.getModifiers())) {
                 insert = CtNewMethod.make("public static " + method.getReturnType().getName() + " " + method.getName() + "()" + body, target);
-            }
-            else
-            {
+            } else {
                 insert = CtNewMethod.make("public " + method.getReturnType().getName() + " " + method.getName() + "()" + body, target);
             }
 

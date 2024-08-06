@@ -4,29 +4,20 @@ import osrs.dev.annotations.Subscribe;
 import osrs.dev.util.Logger;
 
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class EventBus
 {
-    private static final Map<Object, List<Method>> subscribers = new ConcurrentHashMap<>();
+    private static final Map<Object, Set<Method>> subscribers = new ConcurrentHashMap<>();
 
-    public static void register(Object obj)
-    {
-        if (!subscribers.containsKey(obj))
-            subscribers.put(obj, new ArrayList<>());
-
-        for (Method method : obj.getClass().getMethods())
-        {
+    public static void register(Object listener) {
+        for (Method method : listener.getClass().getDeclaredMethods()) {
             if (!method.isAnnotationPresent(Subscribe.class))
                 continue;
 
             method.setAccessible(true);
-
-            if (!subscribers.get(obj).contains(method))
-                subscribers.get(obj).add(method);
+            subscribers.computeIfAbsent(listener, k -> new HashSet<>()).add(method);
         }
     }
 
@@ -53,7 +44,8 @@ public class EventBus
                 }
                 catch (Exception ex)
                 {
-                    Logger.error(ex.getMessage(), ex);
+                    System.out.println(ex.getMessage());
+                    ex.getCause().printStackTrace();
                 }
             }
         }

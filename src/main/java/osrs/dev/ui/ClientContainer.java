@@ -1,5 +1,6 @@
 package osrs.dev.ui;
 
+import lombok.Getter;
 import osrs.dev.api.RSClient;
 import osrs.dev.client.Loader;
 import osrs.dev.util.ClientManager;
@@ -12,6 +13,7 @@ import java.awt.*;
 public class ClientContainer extends JPanel
 {
     private final Loader loader;
+    @Getter
     private final String clientID;
     public ClientContainer(Loader loader)
     {

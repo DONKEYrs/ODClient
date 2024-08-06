@@ -16,6 +16,7 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.text.DefaultCaret;
 import java.awt.*;
+import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
@@ -107,7 +108,6 @@ public class ODClientFrame extends JFrame {
     }
 
     private void addNewTab(String title, Loader loader) {
-
         ClientContainer panel = new ClientContainer(loader);
 
         JLabel closeButton = new JLabel("x");
@@ -139,6 +139,36 @@ public class ODClientFrame extends JFrame {
         JPanel tabHeader = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         tabHeader.setOpaque(false);
         JLabel titleLabel = new JLabel(title);
+
+        JPopupMenu popupMenu = new JPopupMenu();
+        JCheckBoxMenuItem multiboxCheckbox = new JCheckBoxMenuItem("Multibox");
+        multiboxCheckbox.setSelected(false);
+        multiboxCheckbox.addActionListener(e -> ClientManager.setMultiboxID(multiboxCheckbox.isSelected() ? panel.getClientID() : null));
+        popupMenu.add(multiboxCheckbox);
+
+        tabHeader.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mousePressed(MouseEvent e) {
+                handleMouseEvent(e);
+            }
+
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                handleMouseEvent(e);
+            }
+
+            private void handleMouseEvent(MouseEvent e) {
+                if (e.isPopupTrigger()) {
+                    popupMenu.show(e.getComponent(), e.getX(), e.getY());
+                } else if (SwingUtilities.isLeftMouseButton(e)) {
+                    int index = tabbedPane.indexAtLocation(e.getX(), e.getY());
+                    if (index != -1) {
+                        tabbedPane.setSelectedIndex(index);
+                    }
+                }
+            }
+        });
+
         tabHeader.add(titleLabel);
         tabHeader.add(closeButton);
 
@@ -177,6 +207,7 @@ public class ODClientFrame extends JFrame {
     {
         if(!logMenuActions)
             return;
+        System.out.println(event.getOption() + " : " + event.getTarget() + " : " + event.getOpcode() + " : " + event.getIdentifier() + " : " + event.getParam0() + " : " + event.getParam1() + " : " + event.getCanvasX() + " : " + event.getCanvasY());
         Logger.info("[" + client.getClientID() + "] target=" + event.getTarget() + ", option=" + event.getOption());
     }
 }
